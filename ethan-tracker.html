@@ -3,12 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#121417" />
+  <meta name="theme-color" content="#080d20" />
+  <link rel="manifest" href="./manifest.json" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Ethan Tracker" />
-  <link id="dynamicFavicon" rel="icon" type="image/svg+xml" href="" />
-  <link id="dynamicAppleIcon" rel="apple-touch-icon" href="" />
+  <link id="dynamicFavicon" rel="icon" type="image/png" href="./icons/icon-192.png" />
+  <link id="dynamicAppleIcon" rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
   <title>Ethan Tracker</title>
   <style>
     :root {
@@ -216,6 +217,12 @@
       font-size: 13px;
       line-height: 1.5;
     }
+    .app-nav { display:flex; gap:8px; overflow-x:auto; padding:10px; margin:0 0 14px; background:var(--card); border:1px solid var(--border); border-radius:12px; position:sticky; top:6px; z-index:20; }
+    .app-nav button { flex:1 0 auto; min-width:105px; padding:11px 14px; }
+    .app-page { display:none; }
+    .app-page.active-page { display:block; }
+    .history-details { margin-top:14px; border-top:1px solid var(--border); padding-top:12px; }
+    .history-details summary { cursor:pointer; color:#93c5fd; font-weight:700; padding:6px 0; }
     .lock-banner {
       padding: 14px;
       border-radius: 10px;
@@ -297,6 +304,13 @@
     </div>
   </div>
 
+  <nav class="app-nav" aria-label="Main navigation">
+    <button class="active-view" data-page="time-log">Time Log</button>
+    <button class="secondary" data-page="cutoff">Cutoff</button>
+    <button class="secondary" data-page="paycheck">Paycheck</button>
+  </nav>
+
+  <section id="page-time-log" class="app-page active-page">
   <div class="card">
     <div class="toolbar">
       <div class="row" style="gap:6px;">
@@ -361,6 +375,9 @@
     </div>
   </div>
 
+  </section>
+
+  <section id="page-cutoff" class="app-page">
   <div class="card">
     <div class="toolbar" style="margin-bottom:10px;">
       <div>
@@ -368,6 +385,10 @@
         <div id="periodRangeLabel" class="period-highlight"></div>
       </div>
       <div class="row" style="gap:6px;">
+        <div class="field" style="min-width:220px;">
+          <label for="cutoffPeriodSelect">Select cutoff / previous period</label>
+          <select id="cutoffPeriodSelect"></select>
+        </div>
         <button class="secondary active-view" id="biweeklyModeBtn">Bi-Weekly Cutoff</button>
         <button class="secondary" id="monthlyModeBtn">Monthly</button>
         <button class="secondary" id="prevPeriodBtn">&lt; Prev Cutoff</button>
@@ -380,16 +401,21 @@
     </div>
   </div>
 
-  <div class="card">
-    <div class="toolbar" style="margin-bottom:10px;">
-      <div>
-        <h3 style="margin:0;">Final Cutoff OT &amp; Expected Payout (2-Week Totals)</h3>
+  <details class="history-details">
+    <summary>Previous &amp; upcoming cutoff history</summary>
+    <div class="card" style="margin-top:10px;">
+      <div class="toolbar" style="margin-bottom:10px;">
+        <div>
+          <h3 style="margin:0;">Final Cutoff OT &amp; Expected Payout (2-Week Totals)</h3>
         <div class="subtitle" style="margin:3px 0 0 0;">Final weekly-computed OT hours per 2-week cutoff plus expected gross payout on Payday (Thursday). Tap any row to view/edit.</div>
       </div>
     </div>
-    <div id="cutoffTotalsList"></div>
-  </div>
+      <div id="cutoffTotalsList"></div>
+    </div>
+  </details>
+  </section>
 
+  <section id="page-paycheck" class="app-page">
   <div class="card">
     <h3>Paycheck Scan &amp; 2-Paycheck Deduction Check</h3>
     <div class="warn-inline">
@@ -501,6 +527,7 @@
       <div id="paycheckDiffBox" class="diff-box"></div>
     </div>
   </div>
+  </section>
 </div>
 
 <script>
@@ -514,12 +541,11 @@ const ANCHOR_PAYDAY = new Date(2026, 10, 26);
 const MS_PER_DAY = 86400000;
 
 function applyEtIcon() {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="115" fill="#1b1f24"/><rect x="18" y="18" width="476" height="476" rx="100" fill="none" stroke="#3b82f6" stroke-width="14"/><text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="210" font-weight="bold">ET</text></svg>`;
-  const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  // Use the same branded PNG artwork for the browser tab and installed app icon.
   const fav = document.getElementById("dynamicFavicon");
   const appIcon = document.getElementById("dynamicAppleIcon");
-  if (fav) fav.href = url;
-  if (appIcon) appIcon.href = url;
+  if (fav) fav.href = "./icons/icon-192.png";
+  if (appIcon) appIcon.href = "./icons/apple-touch-icon.png";
 }
 
 const defaultState = {
@@ -1107,7 +1133,7 @@ function renderCutoffTotalsList() {
   const rate = Number(state.profile.hourlyRate) || 0;
 
   let html = "";
-  for (let offset = -2; offset <= 4; offset++) {
+  for (let offset = -52; offset <= 4; offset++) {
     const pEnd = addDays(baseEnd, offset * 14);
     const pStart = addDays(pEnd, -13);
     const pPayday = addDays(pEnd, 6);
@@ -1244,7 +1270,48 @@ function renderView() {
   });
 }
 
+function setAppPage(page) {
+  document.querySelectorAll(".app-page").forEach(section => {
+    section.classList.toggle("active-page", section.id === `page-${page}`);
+  });
+  document.querySelectorAll(".app-nav [data-page]").forEach(button => {
+    const active = button.dataset.page === page;
+    button.classList.toggle("active-view", active);
+    button.classList.toggle("secondary", !active);
+  });
+}
+
+document.querySelectorAll(".app-nav [data-page]").forEach(button => {
+  button.addEventListener("click", () => setAppPage(button.dataset.page));
+});
+
+function populateCutoffPeriodSelect() {
+  const select = document.getElementById("cutoffPeriodSelect");
+  const baseEnd = getBiweeklyPeriodForDate(new Date()).end;
+  const selectedKey = toDateKey(stripTime(activePeriodEnd));
+  const options = [];
+  for (let offset = -52; offset <= 4; offset++) {
+    const end = addDays(baseEnd, offset * 14);
+    const start = addDays(end, -13);
+    const payday = addDays(end, 6);
+    const endKey = toDateKey(end);
+    options.push(`<option value="${endKey}">${toDateKey(start)} to ${endKey} • Payday ${toDateKey(payday)}</option>`);
+  }
+  select.innerHTML = options.join("");
+  select.value = selectedKey;
+}
+
+document.getElementById("cutoffPeriodSelect").addEventListener("change", event => {
+  activePeriodEnd = parseKey(event.target.value);
+  summaryMode = "biweekly";
+  document.getElementById("biweeklyModeBtn").classList.add("active-view");
+  document.getElementById("monthlyModeBtn").classList.remove("active-view");
+  currentMonth = new Date(activePeriodEnd.getFullYear(), activePeriodEnd.getMonth(), 1);
+  renderAll();
+});
+
 function renderAll() {
+  populateCutoffPeriodSelect();
   renderMissingLogAlert();
   renderAccountUI();
   renderView();
@@ -1503,6 +1570,16 @@ document.getElementById("exportFileBtn").onclick = () => {
 };
 
 renderAll();
+
+// Register the PWA service worker. Payroll data remains in this device's localStorage;
+// the service worker only caches the app shell and static icon files.
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js", { scope: "./" })
+      .then(registration => console.log("Ethan Tracker PWA ready:", registration.scope))
+      .catch(error => console.error("Ethan Tracker PWA registration failed:", error));
+  });
+}
 </script>
 </body>
 </html>
