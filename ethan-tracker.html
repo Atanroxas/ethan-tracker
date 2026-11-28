@@ -1,0 +1,1683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#080d20" />
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Ethan Tracker" />
+  <link id="dynamicFavicon" rel="icon" type="image/png" href="./icons/icon-192.png" />
+  <link id="dynamicAppleIcon" rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+  <title>Ethan Tracker</title>
+  <style>
+    :root {
+      --bg: #121417;
+      --card: #1b1f24;
+      --surface: #22272e;
+      --text: #f3f4f6;
+      --muted: #9ca3af;
+      --border: #2f3640;
+      --primary: #3b82f6;
+      --primary-soft: rgba(59, 130, 246, 0.16);
+      --holiday-bg: rgba(245, 158, 11, 0.14);
+      --holiday-border: #d97706;
+      --cutoff-bg: rgba(16, 185, 129, 0.14);
+      --cutoff-border: #059669;
+      --payday-bg: rgba(168, 85, 247, 0.15);
+      --payday-border: #9333ea;
+      --danger: #dc2626;
+      --ok: #6ee7b7;
+      --ok-bg: rgba(16, 185, 129, 0.18);
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      margin: 0;
+      padding: 16px;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .container { max-width: 920px; margin: 0 auto; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    }
+    h1, h2, h3, h4 { margin: 0 0 10px 0; color: var(--text); }
+    .subtitle { font-size: 12px; color: var(--muted); margin-top: -6px; margin-bottom: 12px; }
+    .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+    .field { display: flex; flex-direction: column; gap: 4px; flex: 1 1 160px; }
+    label { font-size: 12px; font-weight: 600; color: var(--muted); }
+    input, select, button {
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid #3a424d;
+      font-size: 14px;
+      background: var(--surface);
+      color: var(--text);
+    }
+    input::placeholder { color: #6b7280; }
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    button {
+      cursor: pointer;
+      background: #374151;
+      color: #f9fafb;
+      border: 1px solid #4b5563;
+      font-weight: 600;
+    }
+    button:hover { background: #4b5563; }
+    button.secondary { background: #262c34; color: #e5e7eb; border-color: #374151; }
+    button.secondary:hover { background: #323944; }
+    button.active-view { background: var(--primary); color: #ffffff; border-color: var(--primary); }
+    button.danger { background: #991b1b; color: #fef2f2; border-color: #b91c1c; }
+    button.danger:hover { background: var(--danger); }
+    .toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .alert-banner {
+      background: rgba(245, 158, 11, 0.16);
+      border: 1px solid #d97706;
+      color: #fde68a;
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .alert-banner strong { color: #fcd34d; }
+    .missing-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .chip-btn {
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: rgba(245, 158, 11, 0.25);
+      border: 1px solid #f59e0b;
+      color: #fef3c7;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      margin-top: 12px;
+    }
+    .dow { text-align: center; font-size: 12px; font-weight: 700; color: var(--muted); padding: 4px 0; }
+    .day {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      min-height: 82px;
+      padding: 6px;
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      font-size: 13px;
+    }
+    .day.empty { background: transparent; border-color: transparent; cursor: default; }
+    .day.in-period { box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.35); }
+    .day.holiday { background: var(--holiday-bg); border-color: var(--holiday-border); }
+    .day.cutoff { background: var(--cutoff-bg); border-color: var(--cutoff-border); }
+    .day.payday { background: var(--payday-bg); border-color: var(--payday-border); }
+    .day.has-log { background: var(--primary-soft); border-color: #60a5fa; }
+    .day.missing-day { border-color: #f59e0b; box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.5); }
+    .day.selected { outline: 2px solid #93c5fd; }
+    .badge {
+      display: inline-block;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+    .badge-hol { background: rgba(245, 158, 11, 0.24); color: #fcd34d; }
+    .badge-ot { background: rgba(59, 130, 246, 0.25); color: #93c5fd; }
+    .badge-reg { background: rgba(156, 163, 175, 0.2); color: #d1d5db; }
+    .badge-sick { background: rgba(248, 113, 113, 0.22); color: #fca5a5; }
+    .badge-cut { background: rgba(16, 185, 129, 0.24); color: #6ee7b7; }
+    .badge-pay { background: rgba(168, 85, 247, 0.26); color: #d8b4fe; }
+    .badge-miss { background: rgba(245, 158, 11, 0.28); color: #fde68a; }
+    .badge-ok { background: var(--ok-bg); color: var(--ok); }
+    .badge-warn { background: rgba(239, 68, 68, 0.22); color: #fca5a5; }
+    .list-item, .cutoff-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      background: var(--surface);
+      color: var(--text);
+    }
+    .list-item.selected, .cutoff-row.active-cutoff {
+      border-color: #60a5fa;
+      background: var(--primary-soft);
+    }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+      gap: 10px;
+    }
+    .stat {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: var(--surface);
+    }
+    .stat .val { font-size: 18px; font-weight: 700; margin-top: 4px; color: #ffffff; }
+    .period-highlight { font-size: 13px; color: #93c5fd; font-weight: 600; margin-top: 3px; }
+    .pending-week { color:#fde68a; background:rgba(245,158,11,.12); border:1px solid rgba(245,158,11,.4); border-radius:8px; padding:9px 11px; margin-top:8px; }
+    .ot-breakdown { color:#bfdbfe; background:rgba(59,130,246,.10); border:1px solid rgba(96,165,250,.3); border-radius:8px; padding:9px 11px; margin-top:8px; }
+    .note-box { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.45; }
+    .warn-inline {
+      font-size: 12px;
+      color: #fde68a;
+      background: rgba(245, 158, 11, 0.14);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      padding: 8px 10px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      line-height: 1.45;
+    }
+    .tax-sum-line { font-size: 12px; color: #93c5fd; font-weight: 600; margin-top: 6px; }
+    .paycheck-cols {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .pc-box {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      background: var(--surface);
+    }
+    .pc-preview {
+      margin-top: 8px;
+      max-width: 100%;
+      max-height: 220px;
+      border-radius: 8px;
+      border: 1px solid #3f4752;
+      display: none;
+    }
+    .diff-box {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 10px;
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(96, 165, 250, 0.35);
+      color: #e5e7eb;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .app-nav { display:flex; gap:8px; overflow-x:auto; padding:10px; margin:0 0 14px; background:var(--card); border:1px solid var(--border); border-radius:12px; position:sticky; top:6px; z-index:20; }
+    .app-nav button { flex:1 0 auto; min-width:105px; padding:11px 14px; }
+    .app-page { display:none; }
+    .app-page.active-page { display:block; }
+    .history-details { margin-top:14px; border-top:1px solid var(--border); padding-top:12px; }
+    .history-details summary { cursor:pointer; color:#93c5fd; font-weight:700; padding:6px 0; }
+    .lock-banner {
+      padding: 14px;
+      border-radius: 10px;
+      background: rgba(220, 38, 38, 0.14);
+      border: 1px solid rgba(248, 113, 113, 0.45);
+      color: #fecaca;
+      margin-top: 10px;
+    }
+    @media (max-width: 640px) {
+      .grid { gap: 4px; }
+      .day { min-height: 66px; padding: 4px; font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div id="missingLogBanner" class="alert-banner" style="display:none;"></div>
+
+  <div class="card">
+    <div class="toolbar" style="margin-bottom:8px;">
+      <div>
+        <h1 style="margin:0;">Ethan Tracker</h1>
+        <div class="subtitle" style="margin:2px 0 0 0;">Weekly 40h Rule • Cutoff: Fri (Nov 20, Dec 4) • Payday: Thu (Nov 26, Dec 10) • 4h Lunch &amp; Sick Time</div>
+      </div>
+      <div class="row" style="gap:6px;">
+        <span id="accountStatusBadge" class="badge badge-warn">Unconfirmed</span>
+        <button class="secondary" id="toggleLockBtn">Lock View</button>
+      </div>
+    </div>
+
+    <div id="ownerAccountPanel">
+      <div class="row">
+        <div class="field">
+          <label for="empName">Employee Name</label>
+          <input type="text" id="empName" placeholder="e.g. Jonathan Roxas" />
+        </div>
+        <div class="field">
+          <label for="empId">Employee Number</label>
+          <input type="text" id="empId" placeholder="e.g. EMP-001" />
+        </div>
+        <div class="field">
+          <label for="hourlyRate">Base Hourly Rate (Optional, for Est. Pay)</label>
+          <input type="number" id="hourlyRate" step="0.01" min="0" placeholder="e.g. 25.00" />
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px;">
+        <div class="field">
+          <label for="ownerEmail">Owner Email (for Account Confirmation)</label>
+          <input type="email" id="ownerEmail" placeholder="name@example.com" />
+        </div>
+        <div class="field">
+          <label for="ownerPhone">Owner Phone Number (for Account Confirmation)</label>
+          <input type="tel" id="ownerPhone" placeholder="e.g. 204-555-0199" />
+        </div>
+        <div class="field" style="max-width:140px;">
+          <label for="ownerPin">4-Digit PIN</label>
+          <input type="password" id="ownerPin" maxlength="6" placeholder="e.g. 1234" />
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px;">
+        <button class="secondary" id="sendCodeBtn">Generate Confirmation Code</button>
+        <div class="field" style="max-width:180px;">
+          <label for="confirmCodeInput">Confirmation Code</label>
+          <input type="text" id="confirmCodeInput" maxlength="6" placeholder="Enter code" />
+        </div>
+        <button id="confirmAccountBtn">Confirm Owner Account</button>
+      </div>
+      <div id="codeHintBox" class="note-box"></div>
+    </div>
+
+    <div id="lockedOverlay" class="lock-banner" style="display:none;">
+      <strong>Account Locked:</strong> Enter your 4-digit PIN to view and edit paycheck scans and account details.
+      <div class="row" style="margin-top:8px;">
+        <input type="password" id="unlockPinInput" maxlength="6" placeholder="Enter PIN" style="max-width:150px;" />
+        <button id="unlockBtn">Unlock</button>
+      </div>
+    </div>
+  </div>
+
+  <nav class="app-nav" aria-label="Main navigation">
+    <button class="active-view" data-page="time-log">Time Log</button>
+    <button class="secondary" data-page="cutoff">Cutoff</button>
+    <button class="secondary" data-page="paycheck">Paycheck</button>
+  </nav>
+
+  <section id="page-time-log" class="app-page active-page">
+  <div class="card">
+    <div class="toolbar">
+      <div class="row" style="gap:6px;">
+        <button class="secondary" id="prevMonth">&lt; Prev</button>
+        <h2 id="monthLabel" style="margin:0 6px;"></h2>
+        <button class="secondary" id="nextMonth">Next &gt;</button>
+      </div>
+      <div class="row" style="gap:6px;">
+        <button class="secondary active-view" id="gridViewBtn">Grid View</button>
+        <button class="secondary" id="listViewBtn">List View</button>
+        <button class="secondary" id="exportFileBtn">Export File</button>
+      </div>
+    </div>
+    <div id="viewContainer"></div>
+  </div>
+
+  <div class="card">
+    <h3>Selected Date: <span id="selectedDateText"></span> (<span id="selectedDowText"></span>)</h3>
+    <div class="row">
+      <div class="field" style="max-width: 220px;">
+        <label><input type="checkbox" id="isHoliday" /> Statutory Holiday</label>
+      </div>
+      <div class="field" style="max-width: 240px;">
+        <label><input type="checkbox" id="fullDaySick" /> Full Day Sick (Remove Worked Hrs)</label>
+      </div>
+      <div class="field" style="max-width: 200px;">
+        <label for="sickHrs">Sick Time Hours to Deduct</label>
+        <input type="number" id="sickHrs" step="0.25" min="0" placeholder="0" />
+      </div>
+    </div>
+
+    <div id="weekdayInputs" class="row" style="margin-top:8px;">
+      <div class="field">
+        <label for="wdStart">Actual Start Time (Mon–Fri, Default 06:00)</label>
+        <input type="time" id="wdStart" />
+      </div>
+      <div class="field">
+        <label for="wdEnd">Actual End Time (Mon–Fri, Default 14:30)</label>
+        <input type="time" id="wdEnd" />
+      </div>
+    </div>
+
+    <div id="weekendHoursInput" class="row" style="margin-top:8px; display:none;">
+      <div class="field">
+        <label id="weekendHoursLabel" for="wkHours">Worked Hours</label>
+        <input type="number" id="wkHours" step="0.25" min="0" placeholder="0" />
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:8px;">
+      <div class="field">
+        <label for="dayNote">Note</label>
+        <input type="text" id="dayNote" placeholder="e.g. Home at lunch (4h) / Sick time / Commissioning / Stat holiday" />
+      </div>
+    </div>
+
+    <div id="dayBreakdown" class="note-box"></div>
+
+    <div class="row" style="margin-top:12px;">
+      <button id="saveDayBtn">Save Day</button>
+      <button class="danger" id="clearDayBtn">Clear Entry</button>
+    </div>
+  </div>
+
+  </section>
+
+  <section id="page-cutoff" class="app-page">
+  <div class="card">
+    <div class="toolbar" style="margin-bottom:10px;">
+      <div>
+        <h3 style="margin:0;">Active Cutoff Summary (<span id="empSummaryHeader"></span>)</h3>
+        <div id="periodRangeLabel" class="period-highlight"></div>
+      </div>
+      <div class="row" style="gap:6px;">
+        <div class="field" style="min-width:220px;">
+          <label for="cutoffPeriodSelect">Select cutoff / previous period</label>
+          <select id="cutoffPeriodSelect"></select>
+        </div>
+        <button class="secondary active-view" id="biweeklyModeBtn">Bi-Weekly Cutoff</button>
+        <button class="secondary" id="monthlyModeBtn">Monthly</button>
+        <button class="secondary" id="prevPeriodBtn">&lt; Prev Cutoff</button>
+        <button class="secondary" id="nextPeriodBtn">Next Cutoff &gt;</button>
+      </div>
+    </div>
+    <div class="summary-grid" id="summaryGrid"></div>
+    <div class="note-box">
+      <strong>Weekly OT Rules:</strong> Each payroll week runs Saturday–Friday. Weekday OT is calculated Monday–Friday after 40.0 worked hours. Saturday OT is finalized after the weekdays are complete: weekday OT of 8h+ = all Saturday 2x; 7h = first 1h at 1.5x; 6h = first 2h at 1.5x; 5h = first 3h at 1.5x; 4h or less = first 4h at 1.5x; remaining Saturday hours are 2x. Sunday is always 2x. Saturday and Sunday show <strong>Waiting to End Week</strong> until all five weekday entries are saved. 0.5h unpaid lunch applies only when a weekday shift exceeds 4.0h; Saturday keeps its existing 0.5h lunch deduction when over 4h.
+    </div>
+  </div>
+
+  <details class="history-details">
+    <summary>Previous &amp; upcoming cutoff history</summary>
+    <div class="card" style="margin-top:10px;">
+      <div class="toolbar" style="margin-bottom:10px;">
+        <div>
+          <h3 style="margin:0;">Final Cutoff OT &amp; Expected Payout (2-Week Totals)</h3>
+        <div class="subtitle" style="margin:3px 0 0 0;">Final weekly-computed OT hours per 2-week cutoff plus expected gross payout on Payday (Thursday). Tap any row to view/edit.</div>
+      </div>
+    </div>
+      <div id="cutoffTotalsList"></div>
+    </div>
+  </details>
+  </section>
+
+  <section id="page-paycheck" class="app-page">
+  <div class="card">
+    <h3>Paycheck Scan &amp; 2-Paycheck Deduction Check</h3>
+    <div class="note-box">OCR is an assist only, not an automatic payroll/tax calculator. It runs in your browser when the OCR library is available; verify all suggested numbers on the original paystub before saving.</div>
+    <div class="warn-inline">
+      <strong>Important Paycheck Date Heads-Up:</strong> Ignore the printed check/issue date on your paycheck stub if it looks wrong or shifted—always match your paycheck using the <strong>Work Period (Sat &rarr; Fri Cutoff)</strong> dropdown below so your OT comparison stays accurate.
+    </div>
+
+    <div id="paycheckContent">
+      <div class="paycheck-cols">
+        <div class="pc-box">
+          <h4 style="margin:0 0 8px 0;">Paycheck 1 (First Cutoff)</h4>
+          <div class="field">
+            <label for="pc1Cutoff">Work Period (Ignore Printed Stub Date)</label>
+            <select id="pc1Cutoff"></select>
+          </div>
+          <div class="field" style="margin-top:8px;">
+            <label for="pc1Camera">Scan / Photo Paycheck 1</label>
+            <input type="file" id="pc1Camera" accept="image/*" />
+            <button type="button" class="secondary" id="pc1OcrBtn" style="margin-top:6px;">Read Paystub Values (OCR)</button>
+            <div id="pc1OcrStatus" class="note-box">Choose a photo from your camera or gallery/files, then use OCR to suggest values.</div>
+          </div>
+          <img id="pc1Preview" class="pc-preview" alt="Paycheck 1 preview" />
+
+          <div class="row" style="margin-top:8px;">
+            <div class="field">
+              <label for="pc1OtHrs">OT Hours on Paycheck</label>
+              <input type="number" id="pc1OtHrs" step="0.01" min="0" placeholder="0.00" />
+            </div>
+            <div class="field">
+              <label for="pc1Gross">Gross Pay</label>
+              <input type="number" id="pc1Gross" step="0.01" min="0" placeholder="0.00" />
+            </div>
+          </div>
+          <div class="row" style="margin-top:8px;">
+            <div class="field">
+              <label for="pc1FedTax">Federal Tax</label>
+              <input type="number" id="pc1FedTax" step="0.01" min="0" placeholder="0.00" />
+            </div>
+            <div class="field">
+              <label for="pc1ProvTax">Manitoba Provincial Tax</label>
+              <input type="number" id="pc1ProvTax" step="0.01" min="0" placeholder="0.00" />
+            </div>
+          </div>
+          <div id="pc1TaxAutoTotal" class="tax-sum-line"></div>
+
+          <div class="row" style="margin-top:8px;">
+            <div class="field">
+              <label for="pc1OtherDed">Other Deductions (CPP/EI/etc.)</label>
+              <input type="number" id="pc1OtherDed" step="0.01" min="0" placeholder="0.00" />
+            </div>
+            <div class="field">
+              <label for="pc1Net">Net Pay</label>
+              <input type="number" id="pc1Net" step="0.01" min="0" placeholder="0.00" />
+            </div>
+          </div>
+          <div id="pc1AppMatch" class="note-box"></div>
+        </div>
+
+        <div class="pc-box">
+          <h4 style="margin:0 0 8px 0;">Paycheck 2 (Second Cutoff)</h4>
+          <div class="field">
+            <label for="pc2Cutoff">Work Period (Ignore Printed Stub Date)</label>
+            <select id="pc2Cutoff"></select>
+          </div>
+          <div class="field" style="margin-top:8px;">
+            <label for="pc2Camera">Scan / Photo Paycheck 2</label>
+            <input type="file" id="pc2Camera" accept="image/*" />
+            <button type="button" class="secondary" id="pc2OcrBtn" style="margin-top:6px;">Read Paystub Values (OCR)</button>
+            <div id="pc2OcrStatus" class="note-box">Choose a photo from your camera or gallery/files, then use OCR to suggest values.</div>
+          </div>
+          <img id="pc2Preview" class="pc-preview" alt="Paycheck 2 preview" />
+
+          <div class="row" style="margin-top:8px;">
+            <div class="field">
+              <label for="pc2OtHrs">OT Hours on Paycheck</label>
+              <input type="number" id="pc2OtHrs" step="0.01" min="0" placeholder="0.00" />
+            </div>
+            <div class="field">
+              <label for="pc2Gross">Gross Pay</label>
+              <input type="number" id="pc2Gross" step="0.01" min="0" placeholder="0.00" />
+            </div>
+          </div>
+          <div class="row" style="margin-top:8px;">
+            <div class="field">
+              <label for="pc2FedTax">Federal Tax</label>
+              <input type="number" id="pc2FedTax" step="0.01" min="0" placeholder="0.00" />
+            </div>
+            <div class="field">
+              <label for="pc2ProvTax">Manitoba Provincial Tax</label>
+              <input type="number" id="pc2ProvTax" step="0.01" min="0" placeholder="0.00" />
+            </div>
+          </div>
+          <div id="pc2TaxAutoTotal" class="tax-sum-line"></div>
+
+          <div class="row" style="margin-top:8px;">
+            <div class="field">
+              <label for="pc2OtherDed">Other Deductions (CPP/EI/etc.)</label>
+              <input type="number" id="pc2OtherDed" step="0.01" min="0" placeholder="0.00" />
+            </div>
+            <div class="field">
+              <label for="pc2Net">Net Pay</label>
+              <input type="number" id="pc2Net" step="0.01" min="0" placeholder="0.00" />
+            </div>
+          </div>
+          <div id="pc2AppMatch" class="note-box"></div>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:12px;">
+        <button id="savePaycheckCheckBtn">Save Paycheck Comparison</button>
+        <button class="danger" id="clearPaycheckCheckBtn">Clear Paychecks</button>
+      </div>
+
+      <div id="paycheckDiffBox" class="diff-box"></div>
+    </div>
+  </div>
+  </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script>
+const STORAGE_KEY = "ot_tracker_v13";
+const LEGACY_KEYS = ["ot_tracker_v12", "ot_tracker_v11", "ot_tracker_v10"];
+const LUNCH_THRESHOLD_MINS = 240;
+const UNPAID_LUNCH_MINS = 30;
+const WEEKLY_OT_THRESHOLD_HRS = 40;
+const ANCHOR_CUTOFF = new Date(2026, 10, 20);
+const ANCHOR_PAYDAY = new Date(2026, 10, 26);
+const MS_PER_DAY = 86400000;
+
+function applyEtIcon() {
+  const fav = document.getElementById("dynamicFavicon");
+  const appIcon = document.getElementById("dynamicAppleIcon");
+  if (fav) fav.href = "./icons/icon-192.png";
+  if (appIcon) appIcon.href = "./icons/apple-touch-icon.png";
+}
+
+const defaultState = {
+  profile: {
+    name: "",
+    empId: "",
+    hourlyRate: 0,
+    email: "",
+    phone: "",
+    pin: "",
+    confirmed: false,
+    pendingCode: "",
+    locked: false
+  },
+  holidays: {},
+  logs: {},
+  paycheckCheck: {
+    pc1: { cutoffEnd: "", photo: "", otHrs: "", gross: "", fedTax: "", provTax: "", otherDed: "", net: "" },
+    pc2: { cutoffEnd: "", photo: "", otHrs: "", gross: "", fedTax: "", provTax: "", otherDed: "", net: "" }
+  }
+};
+
+function migrateLegacyStateIfNeeded() {
+  try {
+    if (localStorage.getItem(STORAGE_KEY)) return;
+    for (const oldKey of LEGACY_KEYS) {
+      const oldRaw = localStorage.getItem(oldKey);
+      if (oldRaw) {
+        const parsed = JSON.parse(oldRaw);
+        const migrated = {
+          profile: { ...defaultState.profile, ...(parsed?.profile || {}) },
+          holidays: parsed?.holidays || {},
+          logs: parsed?.logs || {},
+          paycheckCheck: {
+            pc1: { ...defaultState.paycheckCheck.pc1, ...(parsed?.paycheckCheck?.pc1 || {}) },
+            pc2: { ...defaultState.paycheckCheck.pc2, ...(parsed?.paycheckCheck?.pc2 || {}) }
+          }
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+        break;
+      }
+    }
+  } catch (e) {
+    // Ignore storage migration errors
+  }
+}
+
+migrateLegacyStateIfNeeded();
+
+let state = loadState();
+let currentMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+let selectedDate = toDateKey(new Date());
+let viewMode = "grid";
+let summaryMode = "biweekly";
+let activePeriodEnd = getBiweeklyPeriodForDate(new Date()).end;
+let weekCalcCache = new Map();
+
+function loadState() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    return {
+      profile: { ...defaultState.profile, ...(raw?.profile || {}) },
+      holidays: raw?.holidays || {},
+      logs: raw?.logs || {},
+      paycheckCheck: {
+        pc1: { ...defaultState.paycheckCheck.pc1, ...(raw?.paycheckCheck?.pc1 || {}) },
+        pc2: { ...defaultState.paycheckCheck.pc2, ...(raw?.paycheckCheck?.pc2 || {}) }
+      }
+    };
+  } catch {
+    return structuredClone(defaultState);
+  }
+}
+
+function saveState() {
+  try {
+    weekCalcCache.clear();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (e) {
+    alert("Storage is full. Unable to save photo. Try clearing an old photo or exporting a backup file first.");
+  }
+}
+
+function toDateKey(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function parseKey(key) {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function stripTime(d) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function addDays(d, n) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+}
+
+function getBiweeklyPeriodForDate(d) {
+  const cleanD = stripTime(d);
+  const diffDays = Math.round((cleanD - ANCHOR_CUTOFF) / MS_PER_DAY);
+  const k = Math.floor((diffDays + 13) / 14);
+  const end = addDays(ANCHOR_CUTOFF, k * 14);
+  const start = addDays(end, -13);
+  const payday = addDays(end, 6);
+  return { start, end, payday };
+}
+
+function isCutoffDate(dateKey) {
+  const d = parseKey(dateKey);
+  const diffDays = Math.round((d - ANCHOR_CUTOFF) / MS_PER_DAY);
+  return diffDays % 14 === 0;
+}
+
+function isPaydayDate(dateKey) {
+  const d = parseKey(dateKey);
+  const diffDays = Math.round((d - ANCHOR_PAYDAY) / MS_PER_DAY);
+  return diffDays % 14 === 0;
+}
+
+function timeToMinutes(t) {
+  if (!t || !t.includes(":")) return null;
+  const [h, m] = t.split(":").map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  return h * 60 + m;
+}
+
+function minutesToTimeStr(mins) {
+  const h = Math.floor(mins / 60) % 24;
+  const m = mins % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+function getWeekMonday(dateKey) {
+  const d = parseKey(dateKey);
+  const daysSinceSaturday = (d.getDay() + 1) % 7;
+  return addDays(d, -daysSinceSaturday);
+}
+
+function getRawDayWorkedAndLunch(dateKey) {
+  const d = parseKey(dateKey);
+  const dow = d.getDay();
+  const log = state.logs[dateKey] || {};
+  const isHol = !!state.holidays[dateKey];
+  const fullSick = !!log.fullDaySick;
+  const sickHrs = Math.max(0, Number(log.sickHours) || 0);
+
+  if (fullSick) {
+    return {
+      rawNetHrs: 0,
+      unpaidLunch: 0,
+      lunchWindow: "Full day sick (0h worked)",
+      sickDeducted: sickHrs > 0 ? sickHrs : 8,
+      isHolidayOnly: false
+    };
+  }
+
+  if (dow >= 1 && dow <= 5) {
+    let grossSpanHrs = 0;
+    let lunchMins = 0;
+    let lunchWindow = "No lunch (<=4h)";
+
+    if (log.start && log.end) {
+      const startMin = timeToMinutes(log.start);
+      const endMin = timeToMinutes(log.end);
+      if (startMin !== null && endMin !== null && endMin > startMin) {
+        const spanMins = endMin - startMin;
+        if (spanMins > LUNCH_THRESHOLD_MINS) {
+          lunchMins = Math.min(UNPAID_LUNCH_MINS, spanMins - LUNCH_THRESHOLD_MINS);
+          const lStart = startMin + LUNCH_THRESHOLD_MINS;
+          const lEnd = lStart + lunchMins;
+          lunchWindow = `${minutesToTimeStr(lStart)}–${minutesToTimeStr(lEnd)} unpaid`;
+        }
+        grossSpanHrs = Math.max(0, (spanMins - lunchMins) / 60);
+      }
+    } else if (isHol) {
+      grossSpanHrs = 8;
+      lunchWindow = "Stat Holiday (8h)";
+    }
+
+    const netHrs = +Math.max(0, grossSpanHrs - sickHrs).toFixed(2);
+    return {
+      rawNetHrs: netHrs,
+      unpaidLunch: +(lunchMins / 60).toFixed(2),
+      lunchWindow,
+      sickDeducted: sickHrs,
+      isHolidayOnly: isHol && !(log.start && log.end)
+    };
+  }
+
+  const hrs = Math.max(0, Number(log.hours) || 0);
+  let lunchHrs = 0;
+  let lunchWindow = dow === 0 ? "Sunday" : "No lunch (<=4h)";
+
+  if (dow === 6 && hrs > 4) {
+    lunchHrs = 0.5;
+    lunchWindow = "0.5h unpaid lunch (>4h)";
+  }
+
+  const netHrs = +Math.max(0, hrs - lunchHrs - sickHrs).toFixed(2);
+  return {
+    rawNetHrs: netHrs,
+    unpaidLunch: lunchHrs,
+    lunchWindow,
+    sickDeducted: sickHrs,
+    isHolidayOnly: false
+  };
+}
+
+function computeWeekBreakdownMap(monDate) {
+  const monKey = toDateKey(monDate);
+  if (weekCalcCache.has(monKey)) return weekCalcCache.get(monKey);
+
+  const map = new Map();
+  let weekdayWorked = 0;
+  let weekdayOt = 0;
+  const weekdayRows = [];
+  let weekdaysComplete = true;
+
+  for (let i = 2; i < 7; i++) {
+    const curDate = addDays(monDate, i);
+    const key = toDateKey(curDate);
+    const raw = getRawDayWorkedAndLunch(key);
+    if (!state.logs[key] && !state.holidays[key]) weekdaysComplete = false;
+
+    const prevWorked = weekdayWorked;
+    weekdayWorked = +(weekdayWorked + raw.rawNetHrs).toFixed(2);
+    const regPaid = +Math.max(0, Math.min(weekdayWorked, WEEKLY_OT_THRESHOLD_HRS) - prevWorked).toFixed(2);
+    const totalOt = +Math.max(0, weekdayWorked - Math.max(prevWorked, WEEKLY_OT_THRESHOLD_HRS)).toFixed(2);
+    const prevOt = weekdayOt;
+    weekdayOt = +(weekdayOt + totalOt).toFixed(2);
+    const ot15 = +Math.max(0, Math.min(weekdayOt, 3) - prevOt).toFixed(2);
+    const ot20 = +Math.max(0, weekdayOt - Math.max(prevOt, 3)).toFixed(2);
+    weekdayRows.push({ key, raw, regPaid, totalOt, ot15, ot20 });
+  }
+
+  for (const row of weekdayRows) {
+    const label = `Weekday • Weekday Hrs: ${weekdayWorked.toFixed(2)}h • Weekday OT: ${weekdayOt.toFixed(2)}h`;
+    map.set(row.key, {
+      regPaid: row.regPaid, totalOt: row.totalOt, ot15: row.ot15, ot20: row.ot20,
+      unpaidLunch: row.raw.unpaidLunch, sickDeducted: row.raw.sickDeducted,
+      weekTotalHrs: weekdayWorked, weekdayOt, pending: false,
+      label: `${label} • ${row.raw.lunchWindow}`
+    });
+  }
+
+  const saturdayDate = addDays(monDate, 0);
+  const sundayDate = addDays(monDate, 1);
+  const saturdayKey = toDateKey(saturdayDate);
+  const sundayKey = toDateKey(sundayDate);
+  const satRaw = getRawDayWorkedAndLunch(saturdayKey);
+  const sunRaw = getRawDayWorkedAndLunch(sundayKey);
+
+  if (!weekdaysComplete) {
+    for (const [key, raw, dayName] of [[saturdayKey, satRaw, "Saturday"], [sundayKey, sunRaw, "Sunday"]]) {
+      map.set(key, {
+        regPaid: 0, totalOt: 0, ot15: 0, ot20: 0,
+        unpaidLunch: raw.unpaidLunch, sickDeducted: raw.sickDeducted,
+        weekTotalHrs: weekdayWorked, weekdayOt, pending: true,
+        label: `${dayName}: Waiting to End Week • Complete and save Monday–Friday first`
+      });
+    }
+  } else {
+    const satHours = satRaw.rawNetHrs;
+    const sat15Limit = weekdayOt >= 8 ? 0 : weekdayOt >= 7 ? 1 : weekdayOt >= 6 ? 2 : weekdayOt >= 5 ? 3 : 4;
+    const sat15 = +Math.min(satHours, sat15Limit).toFixed(2);
+    const sat20 = +Math.max(0, satHours - sat15).toFixed(2);
+    map.set(saturdayKey, {
+      regPaid: 0, totalOt: satHours, ot15: sat15, ot20: sat20,
+      unpaidLunch: satRaw.unpaidLunch, sickDeducted: satRaw.sickDeducted,
+      weekTotalHrs: +(weekdayWorked + satHours).toFixed(2), weekdayOt, pending: false,
+      label: `Saturday • Weekday OT: ${weekdayOt.toFixed(2)}h • ${sat15.toFixed(2)}h at 1.5x, ${sat20.toFixed(2)}h at 2x`
+    });
+    const sunHours = sunRaw.rawNetHrs;
+    map.set(sundayKey, {
+      regPaid: 0, totalOt: sunHours, ot15: 0, ot20: sunHours,
+      unpaidLunch: sunRaw.unpaidLunch, sickDeducted: sunRaw.sickDeducted,
+      weekTotalHrs: +(weekdayWorked + satHours + sunHours).toFixed(2), weekdayOt, pending: false,
+      label: `Sunday • Automatic 2x OT • ${sunHours.toFixed(2)}h`
+    });
+  }
+
+  weekCalcCache.set(monKey, map);
+  return map;
+}
+
+function computeDayBreakdown(dateKey) {
+  const mon = getWeekMonday(dateKey);
+  const weekMap = computeWeekBreakdownMap(mon);
+  return weekMap.get(dateKey) || {
+    regPaid: 0,
+    totalOt: 0,
+    ot15: 0,
+    ot20: 0,
+    unpaidLunch: 0,
+    sickDeducted: 0,
+    weekTotalHrs: 0,
+    weekdayOt: 0,
+    pending: false,
+    label: ""
+  };
+}
+
+function computeRangeTotals(startDate, endDate) {
+  let totalRegPaid = 0, totalOt = 0, total15 = 0, total20 = 0, holidayCount = 0, totalUnpaidLunch = 0, totalSickHrs = 0;
+  for (let cur = stripTime(startDate); cur <= stripTime(endDate); cur = addDays(cur, 1)) {
+    const key = toDateKey(cur);
+    if (state.holidays[key]) holidayCount++;
+    const b = computeDayBreakdown(key);
+    totalRegPaid += b.regPaid;
+    totalOt += b.totalOt;
+    total15 += b.ot15;
+    total20 += b.ot20;
+    totalUnpaidLunch += b.unpaidLunch;
+    totalSickHrs += b.sickDeducted;
+  }
+  const rate = Number(state.profile.hourlyRate) || 0;
+  const estOtPay = (total15 * rate * 1.5) + (total20 * rate * 2.0);
+  const estRegPay = totalRegPaid * rate;
+  const estTotalPay = estRegPay + estOtPay;
+  return {
+    totalRegPaid: +totalRegPaid.toFixed(2),
+    totalOt: +totalOt.toFixed(2),
+    total15: +total15.toFixed(2),
+    total20: +total20.toFixed(2),
+    holidayCount,
+    totalUnpaidLunch: +totalUnpaidLunch.toFixed(2),
+    totalSickHrs: +totalSickHrs.toFixed(2),
+    estOtPay,
+    estRegPay,
+    estTotalPay
+  };
+}
+
+function getMissingWeekdayKeys() {
+  const today = stripTime(new Date());
+  const curPeriod = getBiweeklyPeriodForDate(today);
+  const missing = [];
+  for (let d = stripTime(curPeriod.start); d <= today && d <= curPeriod.end; d = addDays(d, 1)) {
+    const dow = d.getDay();
+    if (dow >= 1 && dow <= 5) {
+      const key = toDateKey(d);
+      const log = state.logs[key];
+      const hasEntry = !!(log && ((log.start && log.end) || log.fullDaySick || Number(log.sickHours) > 0));
+      if (!hasEntry && !state.holidays[key]) {
+        missing.push(key);
+      }
+    }
+  }
+  return missing;
+}
+
+function renderMissingLogAlert() {
+  const banner = document.getElementById("missingLogBanner");
+  const missing = getMissingWeekdayKeys();
+  const todayKey = toDateKey(new Date());
+
+  if (missing.length === 0) {
+    banner.style.display = "none";
+    return;
+  }
+
+  const includesToday = missing.includes(todayKey);
+  const msg = includesToday
+    ? `You haven't logged hours for today (${todayKey}) yet, and there are ${missing.length} weekday(s) in the current cutoff period without an entry.`
+    : `You have ${missing.length} missed weekday(s) in the current cutoff period without logged hours.`;
+
+  banner.style.display = "block";
+  banner.innerHTML = `
+    <strong>Missing Time Log Notification:</strong> ${msg} Tap a date below to log your hours:
+    <div class="missing-chips">
+      ${missing.map(k => `<button type="button" class="chip-btn" data-jump-key="${k}">${k}${k === todayKey ? " (Today)" : ""}</button>`).join("")}
+    </div>
+  `;
+
+  banner.querySelectorAll("[data-jump-key]").forEach(btn => {
+    btn.onclick = () => {
+      selectedDate = btn.getAttribute("data-jump-key");
+      const d = parseKey(selectedDate);
+      currentMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+      activePeriodEnd = getBiweeklyPeriodForDate(d).end;
+      renderAll();
+      document.getElementById("wdStart")?.focus();
+    };
+  });
+}
+
+function renderAccountUI() {
+  const p = state.profile;
+  const badge = document.getElementById("accountStatusBadge");
+  if (p.confirmed) {
+    badge.textContent = "Confirmed Owner Account";
+    badge.className = "badge badge-ok";
+  } else {
+    badge.textContent = "Unconfirmed";
+    badge.className = "badge badge-warn";
+  }
+
+  const isLocked = !!p.locked && !!p.pin;
+  document.getElementById("ownerAccountPanel").style.display = isLocked ? "none" : "block";
+  document.getElementById("paycheckContent").style.display = isLocked ? "none" : "block";
+  document.getElementById("lockedOverlay").style.display = isLocked ? "block" : "none";
+}
+
+function populateCutoffSelects() {
+  const baseEnd = getBiweeklyPeriodForDate(new Date()).end;
+  const options = [];
+  for (let offset = -4; offset <= 4; offset++) {
+    const pEnd = addDays(baseEnd, offset * 14);
+    const pStart = addDays(pEnd, -13);
+    const pPayday = addDays(pEnd, 6);
+    const endKey = toDateKey(pEnd);
+    const startKey = toDateKey(pStart);
+    const payKey = toDateKey(pPayday);
+    options.push({
+      value: endKey,
+      text: `Work: ${startKey} (Sat) to ${endKey} (Fri Cutoff) • Payday: ${payKey} (Thu)`
+    });
+  }
+
+  ["pc1Cutoff", "pc2Cutoff"].forEach((id, idx) => {
+    const sel = document.getElementById(id);
+    const savedVal = idx === 0 ? state.paycheckCheck.pc1.cutoffEnd : state.paycheckCheck.pc2.cutoffEnd;
+    const fallbackVal = idx === 0 ? options[4].value : options[5].value;
+    const targetVal = savedVal || fallbackVal;
+
+    sel.innerHTML = options.map(o => `<option value="${o.value}">${o.text}</option>`).join("");
+    sel.value = targetVal;
+    if (idx === 0) state.paycheckCheck.pc1.cutoffEnd = sel.value;
+    else state.paycheckCheck.pc2.cutoffEnd = sel.value;
+  });
+}
+
+function compressImageToDataUrl(file, maxWidth = 1000, quality = 0.72) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = img.width > maxWidth ? maxWidth / img.width : 1;
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function readPaystubWithOcr(index) {
+  const key = index === 0 ? "pc1" : "pc2";
+  const status = document.getElementById(`${key}OcrStatus`);
+  const record = state.paycheckCheck[key];
+  if (!record.photo) {
+    status.textContent = "Please choose or take a paycheck photo first.";
+    return;
+  }
+  if (!window.Tesseract) {
+    status.textContent = "OCR library is not available. Connect to the internet and try again.";
+    return;
+  }
+  const button = document.getElementById(`${key}OcrBtn`);
+  button.disabled = true;
+  status.textContent = "Reading image… Please wait. The image is processed in this browser.";
+  try {
+    const result = await Tesseract.recognize(record.photo, "eng", {
+      logger: m => { if (m.status === "recognizing text") status.textContent = `Reading paystub… ${Math.round((m.progress || 0) * 100)}%`; }
+    });
+    const text = result.data.text || "";
+    const lines = text.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+    const findAmount = (patterns) => {
+      for (const line of lines) {
+        if (patterns.some(p => p.test(line))) {
+          const matches = [...line.matchAll(/\$?\s*(-?\d[\d,]*\.\d{2})/g)];
+          if (matches.length) return matches[matches.length - 1][1].replace(/,/g, "");
+        }
+      }
+      return "";
+    };
+    const gross = findAmount([/\bgross\s*(pay|earnings)?\b/i, /\btotal\s*earnings\b/i]);
+    const fed = findAmount([/\bfederal\s*(tax|income tax|withholding)?\b/i]);
+    const prov = findAmount([/\b(man(itoba)?\s*)?(provincial|province|mb)\s*(tax|income tax)?\b/i]);
+    const cpp = findAmount([/\bcpp\b|canada pension/i]);
+    const ei = findAmount([/\bei\b|employment insurance/i]);
+    const net = findAmount([/\bnet\s*(pay|payable|deposit)?\b/i, /\btake.?home\b/i]);
+    const ot = findAmount([/\bovertime\b|\bot\s*hours?\b/i]);
+    const updates = { gross, fedTax: fed, provTax: prov, net, otHrs: ot };
+    if (cpp || ei) updates.otherDed = (Number(cpp || 0) + Number(ei || 0)).toFixed(2);
+    Object.entries(updates).forEach(([field, value]) => { if (value !== "") record[field] = value; });
+    saveState();
+    renderPaycheckSection();
+    const found = Object.entries(updates).filter(([,v]) => v !== "").map(([k]) => k);
+    status.textContent = found.length
+      ? `Suggested values found: ${found.join(", ")}. Please verify every amount against the original stub before saving. OCR may misread numbers.`
+      : "Text was read, but no familiar paystub amounts were confidently recognized. Please enter the values manually.";
+  } catch (err) {
+    status.textContent = "Could not read this image. Try a clearer, straight-on photo or enter the values manually.";
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function renderPaycheckSection() {
+  const pc1 = state.paycheckCheck.pc1;
+  const pc2 = state.paycheckCheck.pc2;
+
+  document.getElementById("pc1OtHrs").value = pc1.otHrs;
+  document.getElementById("pc1Gross").value = pc1.gross;
+  document.getElementById("pc1FedTax").value = pc1.fedTax;
+  document.getElementById("pc1ProvTax").value = pc1.provTax;
+  document.getElementById("pc1OtherDed").value = pc1.otherDed;
+  document.getElementById("pc1Net").value = pc1.net;
+
+  document.getElementById("pc2OtHrs").value = pc2.otHrs;
+  document.getElementById("pc2Gross").value = pc2.gross;
+  document.getElementById("pc2FedTax").value = pc2.fedTax;
+  document.getElementById("pc2ProvTax").value = pc2.provTax;
+  document.getElementById("pc2OtherDed").value = pc2.otherDed;
+  document.getElementById("pc2Net").value = pc2.net;
+
+  const img1 = document.getElementById("pc1Preview");
+  const img2 = document.getElementById("pc2Preview");
+  if (pc1.photo) { img1.src = pc1.photo; img1.style.display = "block"; } else { img1.style.display = "none"; }
+  if (pc2.photo) { img2.src = pc2.photo; img2.style.display = "block"; } else { img2.style.display = "none"; }
+
+  const n = (v) => parseFloat(v) || 0;
+  const g1 = n(pc1.gross), g2 = n(pc2.gross);
+  const fed1 = n(pc1.fedTax), prov1 = n(pc1.provTax), tax1 = fed1 + prov1;
+  const fed2 = n(pc2.fedTax), prov2 = n(pc2.provTax), tax2 = fed2 + prov2;
+  const o1 = n(pc1.otherDed), o2 = n(pc2.otherDed);
+  const d1 = tax1 + o1, d2 = tax2 + o2;
+  const net1 = n(pc1.net), net2 = n(pc2.net);
+
+  const eff1 = g1 > 0 ? (tax1 / g1) * 100 : 0;
+  const eff2 = g2 > 0 ? (tax2 / g2) * 100 : 0;
+
+  document.getElementById("pc1TaxAutoTotal").textContent =
+    `Total Income Tax (Fed + MB): ${tax1.toFixed(2)} (Fed ${fed1.toFixed(2)} + MB ${prov1.toFixed(2)})${g1 > 0 ? ` • Effective Tax: ${eff1.toFixed(1)}%` : ""}`;
+
+  document.getElementById("pc2TaxAutoTotal").textContent =
+    `Total Income Tax (Fed + MB): ${tax2.toFixed(2)} (Fed ${fed2.toFixed(2)} + MB ${prov2.toFixed(2)})${g2 > 0 ? ` • Effective Tax: ${eff2.toFixed(1)}%` : ""}`;
+
+  const getAppTotalsForCutoff = (endKey) => {
+    if (!endKey) return { totalOt: 0, estTotalPay: 0 };
+    const endD = parseKey(endKey);
+    const startD = addDays(endD, -13);
+    return computeRangeTotals(startD, endD);
+  };
+
+  const app1 = getAppTotalsForCutoff(pc1.cutoffEnd);
+  const app2 = getAppTotalsForCutoff(pc2.cutoffEnd);
+  const pcOt1 = parseFloat(pc1.otHrs);
+  const pcOt2 = parseFloat(pc2.otHrs);
+
+  document.getElementById("pc1AppMatch").textContent = !Number.isNaN(pcOt1)
+    ? `App OT for work period: ${app1.totalOt.toFixed(2)}h vs Paycheck: ${pcOt1.toFixed(2)}h (Diff: ${(pcOt1 - app1.totalOt) >= 0 ? "+" : ""}${(pcOt1 - app1.totalOt).toFixed(2)}h)`
+    : `App OT for selected work period: ${app1.totalOt.toFixed(2)}h`;
+
+  document.getElementById("pc2AppMatch").textContent = !Number.isNaN(pcOt2)
+    ? `App OT for work period: ${app2.totalOt.toFixed(2)}h vs Paycheck: ${pcOt2.toFixed(2)}h (Diff: ${(pcOt2 - app2.totalOt) >= 0 ? "+" : ""}${(pcOt2 - app2.totalOt).toFixed(2)}h)`
+    : `App OT for selected work period: ${app2.totalOt.toFixed(2)}h`;
+
+  const fmtDiff = (diff) => `${diff >= 0 ? "+" : ""}${diff.toFixed(2)}`;
+
+  document.getElementById("paycheckDiffBox").innerHTML = `
+    <strong>2-Paycheck Comparison (Paycheck 2 vs. Paycheck 1):</strong><br/>
+    • <strong>Gross Pay:</strong> PC1 ${g1.toFixed(2)} | PC2 ${g2.toFixed(2)} (<strong>Diff: ${fmtDiff(g2 - g1)}</strong>)<br/>
+    • <strong>Federal Tax:</strong> PC1 ${fed1.toFixed(2)} | PC2 ${fed2.toFixed(2)} (<strong>Diff: ${fmtDiff(fed2 - fed1)}</strong>)<br/>
+    • <strong>Manitoba Provincial Tax:</strong> PC1 ${prov1.toFixed(2)} | PC2 ${prov2.toFixed(2)} (<strong>Diff: ${fmtDiff(prov2 - prov1)}</strong>)<br/>
+    • <strong>Total Income Tax (Fed + MB):</strong> PC1 ${tax1.toFixed(2)} (${eff1.toFixed(1)}%) | PC2 ${tax2.toFixed(2)} (${eff2.toFixed(1)}%) (<strong>Diff: ${fmtDiff(tax2 - tax1)}</strong>)<br/>
+    • <strong>Other Deductions:</strong> PC1 ${o1.toFixed(2)} | PC2 ${o2.toFixed(2)} (<strong>Diff: ${fmtDiff(o2 - o1)}</strong>)<br/>
+    • <strong>Total Deductions (All Taxes + Other):</strong> PC1 ${d1.toFixed(2)} | PC2 ${d2.toFixed(2)} (<strong>Diff: ${fmtDiff(d2 - d1)}</strong>)<br/>
+    • <strong>Net Pay:</strong> PC1 ${net1.toFixed(2)} | PC2 ${net2.toFixed(2)} (<strong>Diff: ${fmtDiff(net2 - net1)}</strong>)
+  `;
+}
+
+function renderForm() {
+  const d = parseKey(selectedDate);
+  const dow = d.getDay();
+  const log = state.logs[selectedDate] || {};
+  const isHol = !!state.holidays[selectedDate];
+  const isCut = isCutoffDate(selectedDate);
+  const isPay = isPaydayDate(selectedDate);
+  const dateTags = [isCut ? "Cutoff (Fri)" : "", isPay ? "Payday (Thu)" : ""].filter(Boolean);
+
+  document.getElementById("selectedDateText").textContent = selectedDate + (dateTags.length ? ` [${dateTags.join(" • ")}]` : "");
+  document.getElementById("selectedDowText").textContent = d.toLocaleDateString("en-US", { weekday: "long" });
+  document.getElementById("isHoliday").checked = isHol;
+  document.getElementById("fullDaySick").checked = !!log.fullDaySick;
+  document.getElementById("sickHrs").value = log.sickHours ?? "";
+  document.getElementById("dayNote").value = log.note || "";
+
+  const wdBox = document.getElementById("weekdayInputs");
+  const wkBox = document.getElementById("weekendHoursInput");
+  const wkLabel = document.getElementById("weekendHoursLabel");
+  const wkInput = document.getElementById("wkHours");
+
+  if (dow >= 1 && dow <= 5) {
+    wdBox.style.display = "flex";
+    wkBox.style.display = "none";
+    document.getElementById("wdStart").value = log.start || "06:00";
+    document.getElementById("wdEnd").value = log.end || "14:30";
+  } else if (dow === 6) {
+    wdBox.style.display = "none";
+    wkBox.style.display = "flex";
+    wkLabel.textContent = "Saturday Worked Hours (0 if did not work; e.g. 8 for 5:00 AM – 1:30 PM)";
+    wkInput.value = log.hours ?? 0;
+  } else {
+    wdBox.style.display = "none";
+    wkBox.style.display = "flex";
+    wkLabel.textContent = "Sunday Worked Hours (0 if did not work; e.g. 4 for 5:00 AM – 9:00 AM)";
+    wkInput.value = log.hours ?? 0;
+  }
+
+  const b = computeDayBreakdown(selectedDate);
+  const breakdownEl = document.getElementById("dayBreakdown");
+  breakdownEl.className = b.pending ? "pending-week" : "ot-breakdown";
+  breakdownEl.textContent = b.pending
+    ? `${b.label}. Your Saturday/Sunday hours are saved, but not counted in the final OT totals yet.`
+    : `${b.label} → Regular: ${b.regPaid.toFixed(2)}h | Total OT: ${b.totalOt.toFixed(2)}h | 1.5x: ${b.ot15.toFixed(2)}h | 2.0x: ${b.ot20.toFixed(2)}h | Unpaid Lunch: ${b.unpaidLunch.toFixed(2)}h | Sick Ded: ${b.sickDeducted.toFixed(2)}h`;
+}
+
+function renderSummary() {
+  let startDate, endDate, paydayDate, labelText;
+
+  if (summaryMode === "biweekly") {
+    endDate = stripTime(activePeriodEnd);
+    startDate = addDays(endDate, -13);
+    paydayDate = addDays(endDate, 6);
+    labelText = `Period: ${toDateKey(startDate)} (Sat) to ${toDateKey(endDate)} (Fri Cutoff) • Payday: ${toDateKey(paydayDate)} (Thu)`;
+  } else {
+    const y = currentMonth.getFullYear();
+    const m = currentMonth.getMonth();
+    startDate = new Date(y, m, 1);
+    endDate = new Date(y, m + 1, 0);
+    labelText = `Full Month: ${currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}`;
+  }
+
+  document.getElementById("periodRangeLabel").textContent = labelText;
+
+  const totals = computeRangeTotals(startDate, endDate);
+  const rate = Number(state.profile.hourlyRate) || 0;
+  const empText = [state.profile.name, state.profile.empId ? `#${state.profile.empId}` : ""].filter(Boolean).join(" • ") || "No Employee Info";
+  document.getElementById("empSummaryHeader").textContent = empText;
+
+  document.getElementById("summaryGrid").innerHTML = `
+    <div class="stat"><div>Final OT (>40h/wk)</div><div class="val">${totals.totalOt.toFixed(2)}h</div></div>
+    <div class="stat"><div>Regular Paid Hrs</div><div class="val">${totals.totalRegPaid.toFixed(2)}h</div></div>
+    <div class="stat"><div>1.5x OT Hours</div><div class="val">${totals.total15.toFixed(2)}h</div><div class="note-box">Weekday + Saturday 1.5x</div></div>
+    <div class="stat"><div>2.0x OT Hours</div><div class="val">${totals.total20.toFixed(2)}h</div><div class="note-box">Weekday + Saturday + Sunday 2x</div></div>
+    <div class="stat"><div>Sick Time Deducted</div><div class="val">${totals.totalSickHrs.toFixed(2)}h</div></div>
+    <div class="stat"><div>Unpaid Lunch</div><div class="val">${totals.totalUnpaidLunch.toFixed(2)}h</div></div>
+    ${rate > 0 ? `<div class="stat"><div>Est. OT Pay</div><div class="val">${totals.estOtPay.toFixed(2)}</div></div>` : ""}
+    ${rate > 0 ? `<div class="stat"><div>Est. Total Gross</div><div class="val">${totals.estTotalPay.toFixed(2)}</div></div>` : ""}
+  `;
+}
+
+function renderCutoffTotalsList() {
+  const container = document.getElementById("cutoffTotalsList");
+  const baseEnd = getBiweeklyPeriodForDate(new Date()).end;
+  const activeKey = toDateKey(stripTime(activePeriodEnd));
+  const rate = Number(state.profile.hourlyRate) || 0;
+
+  let html = "";
+  for (let offset = -52; offset <= 4; offset++) {
+    const pEnd = addDays(baseEnd, offset * 14);
+    const pStart = addDays(pEnd, -13);
+    const pPayday = addDays(pEnd, 6);
+    const endKey = toDateKey(pEnd);
+    const startKey = toDateKey(pStart);
+    const payKey = toDateKey(pPayday);
+    const t = computeRangeTotals(pStart, pEnd);
+    const isActive = summaryMode === "biweekly" && endKey === activeKey;
+    const tag = offset === 0 ? " • Current" : "";
+
+    html += `
+      <div class="cutoff-row ${isActive ? "active-cutoff" : ""}" data-cutoff-end="${endKey}">
+        <div>
+          <strong>${startKey} (Sat) &rarr; ${endKey} (Fri Cutoff)</strong>${tag}
+          <div style="font-size:12px;color:#d8b4fe;margin-top:2px;">Payday: <strong>${payKey} (Thu)</strong>${rate > 0 ? ` • Est. Gross Payout: <strong>${t.estTotalPay.toFixed(2)}</strong> (Reg ${t.estRegPay.toFixed(2)} + OT ${t.estOtPay.toFixed(2)})` : ""}</div>
+          <div style="font-size:12px;color:#9ca3af;margin-top:2px;">Reg Paid: ${t.totalRegPaid.toFixed(2)}h | 1.5x OT: ${t.total15.toFixed(2)}h | 2.0x OT: ${t.total20.toFixed(2)}h | Sick: ${t.totalSickHrs.toFixed(2)}h</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:16px;font-weight:700;color:#93c5fd;">${t.totalOt.toFixed(2)}h OT</div>
+          <div style="font-size:11px;color:#9ca3af;">Final Count</div>
+        </div>
+      </div>`;
+  }
+
+  container.innerHTML = html;
+  container.querySelectorAll("[data-cutoff-end]").forEach(el => {
+    el.onclick = () => {
+      activePeriodEnd = parseKey(el.getAttribute("data-cutoff-end"));
+      summaryMode = "biweekly";
+      document.getElementById("biweeklyModeBtn").classList.add("active-view");
+      document.getElementById("monthlyModeBtn").classList.remove("active-view");
+      currentMonth = new Date(activePeriodEnd.getFullYear(), activePeriodEnd.getMonth(), 1);
+      renderAll();
+    };
+  });
+}
+
+function renderView() {
+  const container = document.getElementById("viewContainer");
+  const y = currentMonth.getFullYear();
+  const m = currentMonth.getMonth();
+  document.getElementById("monthLabel").textContent =
+    currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const pEnd = stripTime(activePeriodEnd);
+  const pStart = addDays(pEnd, -13);
+  const missingSet = new Set(getMissingWeekdayKeys());
+
+  if (viewMode === "grid") {
+    const firstDow = new Date(y, m, 1).getDay();
+    let html = `<div class="grid">`;
+    ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].forEach(d => {
+      html += `<div class="dow">${d}</div>`;
+    });
+    for (let i = 0; i < firstDow; i++) html += `<div class="day empty"></div>`;
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dObj = new Date(y, m, day);
+      const key = toDateKey(dObj);
+      const b = computeDayBreakdown(key);
+      const isHol = !!state.holidays[key];
+      const isCut = isCutoffDate(key);
+      const isPay = isPaydayDate(key);
+      const isMiss = missingSet.has(key);
+      const inPeriod = summaryMode === "biweekly" && dObj >= pStart && dObj <= pEnd;
+      const hasLog = !!state.logs[key];
+      const cls = [
+        "day",
+        inPeriod ? "in-period" : "",
+        isHol ? "holiday" : "",
+        isCut ? "cutoff" : "",
+        isPay ? "payday" : "",
+        hasLog ? "has-log" : "",
+        isMiss ? "missing-day" : "",
+        key === selectedDate ? "selected" : ""
+      ].filter(Boolean).join(" ");
+
+      html += `
+        <div class="${cls}" data-key="${key}">
+          <div><strong>${day}</strong></div>
+          <div>
+            ${isCut ? `<span class="badge badge-cut">Cutoff</span>` : ""}
+            ${isPay ? `<span class="badge badge-pay">Payday</span>` : ""}
+            ${isHol ? `<span class="badge badge-hol">Stat Holiday</span>` : ""}
+            ${b.sickDeducted > 0 ? `<span class="badge badge-sick">Sick -${b.sickDeducted}h</span>` : ""}
+            ${isMiss ? `<span class="badge badge-miss">No Log</span>` : ""}
+            ${b.totalOt > 0 ? `<span class="badge badge-ot">+${b.totalOt.toFixed(2)}h OT</span>` : ""}
+            ${(hasLog && b.totalOt === 0 && b.regPaid > 0) ? `<span class="badge badge-reg">${b.regPaid.toFixed(2)}h Reg</span>` : ""}
+          </div>
+        </div>`;
+    }
+    html += `</div>`;
+    container.innerHTML = html;
+  } else {
+    let html = `<div style="margin-top:12px;">`;
+    for (let day = 1; day <= daysInMonth; day++) {
+      const d = new Date(y, m, day);
+      const key = toDateKey(d);
+      const b = computeDayBreakdown(key);
+      const isHol = !!state.holidays[key];
+      const isCut = isCutoffDate(key);
+      const isPay = isPaydayDate(key);
+      const isMiss = missingSet.has(key);
+      const note = state.logs[key]?.note ? ` — ${state.logs[key].note}` : "";
+      const timeTag = (d.getDay() >= 1 && d.getDay() <= 5 && state.logs[key]?.start && state.logs[key]?.end)
+        ? ` [${state.logs[key].start}–${state.logs[key].end}]`
+        : "";
+      const cls = `list-item ${key === selectedDate ? "selected" : ""}`;
+      html += `
+        <div class="${cls}" data-key="${key}">
+          <div>
+            <strong>${key}</strong> (${d.toLocaleDateString("en-US", { weekday: "short" })})${timeTag}
+            ${isCut ? `<span class="badge badge-cut">Cutoff</span>` : ""}
+            ${isPay ? `<span class="badge badge-pay">Payday</span>` : ""}
+            ${isHol ? `<span class="badge badge-hol">Stat Holiday</span>` : ""}
+            ${b.sickDeducted > 0 ? `<span class="badge badge-sick">Sick -${b.sickDeducted}h</span>` : ""}
+            ${isMiss ? `<span class="badge badge-miss">No Log</span>` : ""}
+            <div style="font-size:12px;color:#9ca3af;">Reg: ${b.regPaid.toFixed(2)}h | 1.5x: ${b.ot15.toFixed(2)}h | 2.0x: ${b.ot20.toFixed(2)}h | Wk: ${b.weekTotalHrs.toFixed(2)}h${note}</div>
+          </div>
+          <div><strong>${b.totalOt.toFixed(2)}h OT</strong></div>
+        </div>`;
+    }
+    html += `</div>`;
+    container.innerHTML = html;
+  }
+
+  container.querySelectorAll("[data-key]").forEach(el => {
+    el.onclick = () => {
+      selectedDate = el.getAttribute("data-key");
+      activePeriodEnd = getBiweeklyPeriodForDate(parseKey(selectedDate)).end;
+      renderAll();
+    };
+  });
+}
+
+function setAppPage(page) {
+  document.querySelectorAll(".app-page").forEach(section => {
+    section.classList.toggle("active-page", section.id === `page-${page}`);
+  });
+  document.querySelectorAll(".app-nav [data-page]").forEach(button => {
+    const active = button.dataset.page === page;
+    button.classList.toggle("active-view", active);
+    button.classList.toggle("secondary", !active);
+  });
+}
+
+document.querySelectorAll(".app-nav [data-page]").forEach(button => {
+  button.addEventListener("click", () => setAppPage(button.dataset.page));
+});
+
+function populateCutoffPeriodSelect() {
+  const select = document.getElementById("cutoffPeriodSelect");
+  const baseEnd = getBiweeklyPeriodForDate(new Date()).end;
+  const selectedKey = toDateKey(stripTime(activePeriodEnd));
+  const options = [];
+  for (let offset = -52; offset <= 4; offset++) {
+    const end = addDays(baseEnd, offset * 14);
+    const start = addDays(end, -13);
+    const payday = addDays(end, 6);
+    const endKey = toDateKey(end);
+    options.push(`<option value="${endKey}">${toDateKey(start)} to ${endKey} • Payday ${toDateKey(payday)}</option>`);
+  }
+  select.innerHTML = options.join("");
+  select.value = selectedKey;
+}
+
+document.getElementById("cutoffPeriodSelect").addEventListener("change", event => {
+  activePeriodEnd = parseKey(event.target.value);
+  summaryMode = "biweekly";
+  document.getElementById("biweeklyModeBtn").classList.add("active-view");
+  document.getElementById("monthlyModeBtn").classList.remove("active-view");
+  currentMonth = new Date(activePeriodEnd.getFullYear(), activePeriodEnd.getMonth(), 1);
+  renderAll();
+});
+
+function renderAll() {
+  populateCutoffPeriodSelect();
+  renderMissingLogAlert();
+  renderAccountUI();
+  renderView();
+  renderForm();
+  renderSummary();
+  renderCutoffTotalsList();
+  renderPaycheckSection();
+}
+
+applyEtIcon();
+populateCutoffSelects();
+
+document.getElementById("empName").value = state.profile.name;
+document.getElementById("empId").value = state.profile.empId;
+document.getElementById("hourlyRate").value = state.profile.hourlyRate || "";
+document.getElementById("ownerEmail").value = state.profile.email;
+document.getElementById("ownerPhone").value = state.profile.phone;
+document.getElementById("ownerPin").value = state.profile.pin;
+
+["empName", "empId", "hourlyRate", "ownerEmail", "ownerPhone", "ownerPin"].forEach(id => {
+  document.getElementById(id).addEventListener("input", () => {
+    state.profile.name = document.getElementById("empName").value.trim();
+    state.profile.empId = document.getElementById("empId").value.trim();
+    state.profile.hourlyRate = parseFloat(document.getElementById("hourlyRate").value) || 0;
+    state.profile.email = document.getElementById("ownerEmail").value.trim();
+    state.profile.phone = document.getElementById("ownerPhone").value.trim();
+    state.profile.pin = document.getElementById("ownerPin").value.trim();
+    saveState();
+    renderSummary();
+    renderCutoffTotalsList();
+  });
+});
+
+document.getElementById("sendCodeBtn").onclick = () => {
+  const email = document.getElementById("ownerEmail").value.trim();
+  const phone = document.getElementById("ownerPhone").value.trim();
+  if (!email && !phone) {
+    return alert("Please enter an Email or Phone Number to generate a confirmation code.");
+  }
+  const code = String(Math.floor(1000 + Math.random() * 9000));
+  state.profile.pendingCode = code;
+  state.profile.confirmed = false;
+  saveState();
+  document.getElementById("codeHintBox").textContent =
+    `Local test confirmation code for ${email || phone}: ${code} — enter this in Confirmation Code and click Confirm Owner Account.`;
+  renderAccountUI();
+};
+
+document.getElementById("confirmAccountBtn").onclick = () => {
+  const entered = document.getElementById("confirmCodeInput").value.trim();
+  if (!state.profile.pendingCode) {
+    return alert("Click Generate Confirmation Code first.");
+  }
+  if (entered !== state.profile.pendingCode) {
+    return alert("Confirmation code does not match.");
+  }
+  state.profile.confirmed = true;
+  state.profile.pendingCode = "";
+  saveState();
+  document.getElementById("confirmCodeInput").value = "";
+  document.getElementById("codeHintBox").textContent = "Owner account is confirmed for this browser/device.";
+  renderAccountUI();
+};
+
+document.getElementById("toggleLockBtn").onclick = () => {
+  if (!state.profile.pin) {
+    return alert("Set a 4-digit PIN in the Owner Account section before locking.");
+  }
+  state.profile.locked = !state.profile.locked;
+  saveState();
+  renderAccountUI();
+};
+
+document.getElementById("unlockBtn").onclick = () => {
+  const enteredPin = document.getElementById("unlockPinInput").value.trim();
+  if (enteredPin !== state.profile.pin) {
+    return alert("Incorrect PIN.");
+  }
+  state.profile.locked = false;
+  document.getElementById("unlockPinInput").value = "";
+  saveState();
+  renderAccountUI();
+};
+
+document.getElementById("saveDayBtn").onclick = () => {
+  const d = parseKey(selectedDate);
+  const dow = d.getDay();
+  const isHol = document.getElementById("isHoliday").checked;
+  const fullDaySick = document.getElementById("fullDaySick").checked;
+  const sickHours = Math.max(0, parseFloat(document.getElementById("sickHrs").value) || 0);
+  const note = document.getElementById("dayNote").value.trim();
+
+  if (isHol) state.holidays[selectedDate] = true;
+  else delete state.holidays[selectedDate];
+
+  if (dow >= 1 && dow <= 5) {
+    const startVal = fullDaySick ? "" : (document.getElementById("wdStart").value || "06:00");
+    const endVal = fullDaySick ? "" : (document.getElementById("wdEnd").value || "14:30");
+    if (!fullDaySick || sickHours > 0 || note) {
+      state.logs[selectedDate] = {
+        start: startVal,
+        end: endVal,
+        fullDaySick,
+        sickHours,
+        note
+      };
+    } else {
+      delete state.logs[selectedDate];
+    }
+  } else {
+    const hrsVal = fullDaySick ? 0 : Math.max(0, parseFloat(document.getElementById("wkHours").value) || 0);
+    if (hrsVal > 0 || fullDaySick || sickHours > 0 || note) {
+      state.logs[selectedDate] = {
+        hours: hrsVal,
+        fullDaySick,
+        sickHours,
+        note
+      };
+    } else {
+      delete state.logs[selectedDate];
+    }
+  }
+
+  saveState();
+  renderAll();
+};
+
+document.getElementById("clearDayBtn").onclick = () => {
+  delete state.logs[selectedDate];
+  delete state.holidays[selectedDate];
+  saveState();
+  renderAll();
+};
+
+document.getElementById("prevMonth").onclick = () => {
+  currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
+  renderAll();
+};
+document.getElementById("nextMonth").onclick = () => {
+  currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+  renderAll();
+};
+
+document.getElementById("gridViewBtn").onclick = () => {
+  viewMode = "grid";
+  document.getElementById("gridViewBtn").classList.add("active-view");
+  document.getElementById("listViewBtn").classList.remove("active-view");
+  renderView();
+};
+document.getElementById("listViewBtn").onclick = () => {
+  viewMode = "list";
+  document.getElementById("listViewBtn").classList.add("active-view");
+  document.getElementById("gridViewBtn").classList.remove("active-view");
+  renderView();
+};
+
+document.getElementById("biweeklyModeBtn").onclick = () => {
+  summaryMode = "biweekly";
+  document.getElementById("biweeklyModeBtn").classList.add("active-view");
+  document.getElementById("monthlyModeBtn").classList.remove("active-view");
+  renderAll();
+};
+document.getElementById("monthlyModeBtn").onclick = () => {
+  summaryMode = "monthly";
+  document.getElementById("monthlyModeBtn").classList.add("active-view");
+  document.getElementById("biweeklyModeBtn").classList.remove("active-view");
+  renderAll();
+};
+
+document.getElementById("prevPeriodBtn").onclick = () => {
+  summaryMode = "biweekly";
+  document.getElementById("biweeklyModeBtn").classList.add("active-view");
+  document.getElementById("monthlyModeBtn").classList.remove("active-view");
+  activePeriodEnd = addDays(activePeriodEnd, -14);
+  currentMonth = new Date(activePeriodEnd.getFullYear(), activePeriodEnd.getMonth(), 1);
+  renderAll();
+};
+document.getElementById("nextPeriodBtn").onclick = () => {
+  summaryMode = "biweekly";
+  document.getElementById("biweeklyModeBtn").classList.add("active-view");
+  document.getElementById("monthlyModeBtn").classList.remove("active-view");
+  activePeriodEnd = addDays(activePeriodEnd, 14);
+  currentMonth = new Date(activePeriodEnd.getFullYear(), activePeriodEnd.getMonth(), 1);
+  renderAll();
+};
+
+document.getElementById("pc1OcrBtn").onclick = () => readPaystubWithOcr(0);
+document.getElementById("pc2OcrBtn").onclick = () => readPaystubWithOcr(1);
+
+["pc1Camera", "pc2Camera"].forEach((inputId, idx) => {
+  document.getElementById(inputId).addEventListener("change", async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const compressed = await compressImageToDataUrl(file);
+      if (idx === 0) state.paycheckCheck.pc1.photo = compressed;
+      else state.paycheckCheck.pc2.photo = compressed;
+      saveState();
+      renderPaycheckSection();
+    } catch {
+      alert("Unable to load the selected image.");
+    }
+  });
+});
+
+["pc1Cutoff", "pc1OtHrs", "pc1Gross", "pc1FedTax", "pc1ProvTax", "pc1OtherDed", "pc1Net"].forEach(id => {
+  document.getElementById(id).addEventListener("input", () => {
+    state.paycheckCheck.pc1 = {
+      ...state.paycheckCheck.pc1,
+      cutoffEnd: document.getElementById("pc1Cutoff").value,
+      otHrs: document.getElementById("pc1OtHrs").value,
+      gross: document.getElementById("pc1Gross").value,
+      fedTax: document.getElementById("pc1FedTax").value,
+      provTax: document.getElementById("pc1ProvTax").value,
+      otherDed: document.getElementById("pc1OtherDed").value,
+      net: document.getElementById("pc1Net").value
+    };
+    saveState();
+    renderPaycheckSection();
+  });
+});
+
+["pc2Cutoff", "pc2OtHrs", "pc2Gross", "pc2FedTax", "pc2ProvTax", "pc2OtherDed", "pc2Net"].forEach(id => {
+  document.getElementById(id).addEventListener("input", () => {
+    state.paycheckCheck.pc2 = {
+      ...state.paycheckCheck.pc2,
+      cutoffEnd: document.getElementById("pc2Cutoff").value,
+      otHrs: document.getElementById("pc2OtHrs").value,
+      gross: document.getElementById("pc2Gross").value,
+      fedTax: document.getElementById("pc2FedTax").value,
+      provTax: document.getElementById("pc2ProvTax").value,
+      otherDed: document.getElementById("pc2OtherDed").value,
+      net: document.getElementById("pc2Net").value
+    };
+    saveState();
+    renderPaycheckSection();
+  });
+});
+
+document.getElementById("savePaycheckCheckBtn").onclick = () => {
+  saveState();
+  renderPaycheckSection();
+  alert("Paycheck 1 and Paycheck 2 comparison saved.");
+};
+
+document.getElementById("clearPaycheckCheckBtn").onclick = () => {
+  state.paycheckCheck = structuredClone(defaultState.paycheckCheck);
+  populateCutoffSelects();
+  saveState();
+  renderPaycheckSection();
+};
+
+document.getElementById("exportFileBtn").onclick = () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/octet-stream" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `ot-backup-${toDateKey(new Date())}.file`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+renderAll();
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js", { scope: "./" })
+      .then(registration => console.log("Ethan Tracker PWA ready:", registration.scope))
+      .catch(error => console.error("Ethan Tracker PWA registration failed:", error));
+  });
+}
+</script>
+</body>
+</html>
